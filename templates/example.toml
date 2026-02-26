@@ -1,0 +1,105 @@
+name = "TEST"
+################################################
+## HTTP GET
+################################################
+## Description:
+##      GET is used to poll teamserver for tasks
+## Defaults:
+##    verb "GET" <-- "GET" or "POST"
+##    uris ["/activity"] <-- array of strings randomly chosen each time
+[get]
+verb = "GET"
+uris = ["/my/uri/path"]
+
+################################################
+## CLIENT
+################################################
+## Description:
+##      client identifies data going from the agent to the server
+## Defaults:
+##    headers <-- dictionary of key/value pairs
+##      set with client.headers.Key = value
+##    domain_specific_headers <-- dictionary of dictionaries of key/value pairs
+##          Allows setting headers specific to callback hosts
+##      set with client.domain_specific_headers."domain".key = value
+##    parameters <-- dictionary of key/value pairs
+##      set with client.parameters.Key = value
+##    message <-- dictionary of key/value pairs about the message the agent is sending to the server
+##      location "cookie" <-- where to place the final message
+##          valid locations are: 'cookie', 'body', 'uri', 'parameter'
+##      name <-- name of cookie, parameter, or uri
+##    transforms <-- array of transforms to do on the message
+##      action <-- what transform action to take
+##          valid actions are: 'base64', 'base64url', 'prepend', 'append', 'xor', 'netbios', 'netbiosu'
+##      value <-- string value to use as a parameter when performing 'action'
+[get.client]
+headers."User-Agent" = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"
+parameters.MyKey = "value"
+[get.client.domain_specific_headers."https://example.com:443"]
+User-Agent = "Test"
+[get.client.message]
+location = "cookie"
+name = "sessionID"
+[[get.client.transforms]]
+action = "base64url"
+# SENDS:
+# GET /my/uri/path?MyKey=value
+# User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36
+# Cookie: sessionID=someBase64
+
+################################################
+## SERVER
+################################################
+## Description:
+##      server identifies data going from the server back to the agent
+## Defaults:
+##    headers <-- dictionary of key/value pairs
+##      set with server.headers.Key = value
+##    parameters <-- dictionary of key/value pairs
+##      set with server.parameters.Key = value
+##    transforms <-- array of transforms to do on the message
+##      action <-- what transform action to take
+##         valid actions are: 'base64', 'base64url', 'prepend', 'append', 'xor', 'netbios', 'netbiosu'
+##      value <-- string value to use as a parameter when performing 'action'
+[get.server.headers]
+Server = "Server"
+Cache-Control = "max-age=0, no-cache"
+[[get.server.transforms]]
+action = "xor"
+value = "keyHere"
+[[get.server.transforms]]
+action = "base64url"
+[[get.server.transforms]]
+action = "prepend"
+value = "{\"response\":\""
+[[get.server.transforms]]
+action = "append"
+value = "\"}"
+# Sends
+# Server: Server
+# Cache-Control: max-age=0, no-cache
+#
+# {"survey_data": "someBase64Here"}
+
+[post]
+uris = ["/my/other/path"]
+verb = "POST"
+[post.client.headers]
+"User-Agent" = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"
+[[post.client.transforms]]
+action = "xor"
+value = "keyHere"
+[[post.client.transforms]]
+action = "base64url"
+# Sends
+# POST /my/other/path?query_id=someBase64"
+# User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36
+
+[post.server.headers]
+Keep-Alive = "true"
+[[get.server.transforms]]
+action = "netbios"
+# Sends
+# Keep-Alive: true
+
+# netbios encoded data
