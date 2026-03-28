@@ -138,31 +138,35 @@ class MalleableC2Parser:
             return content[start_pos + 1:end_pos]
         return None
 
+    @staticmethod
+    def _unescape_string(s: str) -> str:
+        return s.replace('\\"', '"').replace('\\\\', '\\')
+
     def _parse_uri(self, content: str) -> list[str]:
-        match = re.search(r'set\s+uri\s+"([^"]+)"', content)
+        match = re.search(r'set\s+uri\s+"((?:[^"\\]|\\.)*)"', content)
         if match:
-            return [match.group(1)]
+            return [self._unescape_string(match.group(1))]
 
         return ["/"]
 
     def _parse_headers(self, content: str) -> dict[str, str]:
         headers = {}
-        pattern = r'header\s+"([^"]+)"\s+"([^"]+)"\s*;'
+        pattern = r'header\s+"((?:[^"\\]|\\.)*)"\s+"((?:[^"\\]|\\.)*)"\s*;'
 
         for match in re.finditer(pattern, content):
-            key = match.group(1)
-            value = match.group(2)
+            key = self._unescape_string(match.group(1))
+            value = self._unescape_string(match.group(2))
             headers[key] = value
 
         return headers
 
     def _parse_parameters(self, content: str) -> dict[str, str]:
         parameters = {}
-        pattern = r'parameter\s+"([^"]+)"\s+"([^"]+)"\s*;'
+        pattern = r'parameter\s+"((?:[^"\\]|\\.)*)"\s+"((?:[^"\\]|\\.)*)"\s*;'
 
         for match in re.finditer(pattern, content):
-            key = match.group(1)
-            value = match.group(2)
+            key = self._unescape_string(match.group(1))
+            value = self._unescape_string(match.group(2))
             parameters[key] = value
 
         return parameters
@@ -208,9 +212,10 @@ class MalleableC2Parser:
         return ("cookie", "__session")
 
     def _extract_cookie_name(self, metadata_content: str) -> str:
-        prepend_matches = re.findall(r'prepend\s+"([^"]+)"', metadata_content)
+        prepend_matches = re.findall(r'prepend\s+"((?:[^"\\]|\\.)*)"', metadata_content)
 
         for prepend in prepend_matches:
+            prepend = self._unescape_string(prepend)
             if '=' in prepend:
                 cookie_name = prepend.split('=')[0].strip(';').strip()
                 return cookie_name
@@ -227,22 +232,22 @@ class MalleableC2Parser:
         lines = [line.strip().rstrip(';') for line in transform_block.split('\n') if line.strip()]
 
         for line in lines:
-            if line.startswith('base64'):
-                transforms.append(HTTPXTransform(action="base64"))
-            elif line.startswith('base64url'):
+            if line.startswith('base64url'):
                 transforms.append(HTTPXTransform(action="base64url"))
+            elif line.startswith('base64'):
+                transforms.append(HTTPXTransform(action="base64"))
             elif line.startswith('prepend'):
-                match = re.search(r'prepend\s+"([^"]+)"', line)
+                match = re.search(r'prepend\s+"((?:[^"\\]|\\.)*)"', line)
                 if match:
-                    transforms.append(HTTPXTransform(action="prepend", value=match.group(1)))
+                    transforms.append(HTTPXTransform(action="prepend", value=self._unescape_string(match.group(1))))
             elif line.startswith('append'):
-                match = re.search(r'append\s+"([^"]+)"', line)
+                match = re.search(r'append\s+"((?:[^"\\]|\\.)*)"', line)
                 if match:
-                    transforms.append(HTTPXTransform(action="append", value=match.group(1)))
-            elif line.startswith('netbios'):
-                transforms.append(HTTPXTransform(action="netbios"))
+                    transforms.append(HTTPXTransform(action="append", value=self._unescape_string(match.group(1))))
             elif line.startswith('netbiosu'):
                 transforms.append(HTTPXTransform(action="netbiosu"))
+            elif line.startswith('netbios'):
+                transforms.append(HTTPXTransform(action="netbios"))
             elif line.startswith('print'):
                 continue
 
