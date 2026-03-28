@@ -1,6 +1,6 @@
 [project]
 name = "tyche"
-version = "0.1.1"
+version = "0.2.0"
 description = "Mythic HTTPX Profile Generator"
 readme = "README.md"
 requires-python = ">=3.11"

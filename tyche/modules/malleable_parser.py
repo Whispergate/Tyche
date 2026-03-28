@@ -145,7 +145,8 @@ class MalleableC2Parser:
     def _parse_uri(self, content: str) -> list[str]:
         match = re.search(r'set\s+uri\s+"((?:[^"\\]|\\.)*)"', content)
         if match:
-            return [self._unescape_string(match.group(1))]
+            uris = self._unescape_string(match.group(1)).split()
+            return uris if uris else ["/"]
 
         return ["/"]
 
